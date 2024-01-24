@@ -1,0 +1,2 @@
+# Finds any file or folder in the filesystem matching the given pattern
+sudo find / -name "$*" 2> /dev/null
