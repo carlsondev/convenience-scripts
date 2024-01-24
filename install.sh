@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-
 echo "Changing the default shell to ZSH"
 chsh -s $(which zsh)
 
@@ -25,11 +23,22 @@ sed -i 's/plugins=.*/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/'
 source ~/.zshrc && echo "Successfully Setup Zsh Env!" || exit $?
 
 # Copy custom scripts
+
+REPO_PATH=~/.con-scripts-repo
+
+git clone https://github.com/carlsondev/convenience-scripts.git $REPO_PATH || exit $?
+
 echo "Copying scripts to user bin"
-chmod +x $SCRIPTPATH/scripts/* || exit $?
-sudo cp -r $SCRIPTPATH/scripts/* /usr/local/bin/ || exit $?
+chmod +x $REPO_PATH/scripts/* || exit $?
+sudo cp -r $REPO_PATH/scripts/* /usr/local/bin/ || exit $?
 
 echo "Successfully copied custom scripts to user bin"
+
+
+
+
+
+rm -rf $REPO_PATH
 
 
 
