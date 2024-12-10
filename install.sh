@@ -66,10 +66,9 @@ call plug#end()
 "
 echo "$VIMRC" >> ~/.vimrc
 
-echo "Installed FZF and VimPlug-Fzf"
+echo "\nInstalled FZF and VimPlug-Fzf! Run ':PlugInstall' inside vim to finish the installation"
 
-
-echo "Successfully setup environment! Run \"chsh -s $(which zsh) && exec zsh && source ~/.zshrc\" to enter"
+echo "\nSuccessfully setup environment! Run \"chsh -s $(which zsh) && exec zsh && source ~/.zshrc\" to enter"
 
 
 
