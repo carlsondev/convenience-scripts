@@ -46,11 +46,27 @@ sudo cp -r $REPO_PATH/scripts/* /usr/local/bin/ || exit $?
 
 echo "Successfully copied custom scripts to user bin"
 
-
-
-
-
 rm -rf $REPO_PATH
+
+# Install FZF
+git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+~/.fzf/install --all
+
+# Install VimPlug and FZF 
+curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
+    https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+
+VIMRC="
+call plug#begin()
+
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf.vim'
+
+call plug#end()
+"
+echo "$VIMRC" >> ~/.vimrc
+
+echo "Installed FZF and VimPlug-Fzf"
 
 
 echo "Successfully setup environment! Run \"chsh -s $(which zsh) && exec zsh && source ~/.zshrc\" to enter"
