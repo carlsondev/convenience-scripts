@@ -1,3 +1,12 @@
+#!/usr/bin/env bash
 # Removes existing ssh keys from known hosts
-# Usage: $ ssh_hostrm 192.168.0.28
-ssh-keygen -f "$HOME/.ssh/known_hosts" -R "$1"
+# Usage: $ ssh_hostrm 192.168.0.28 [more hosts...]
+
+if [ $# -eq 0 ]; then
+    echo "Usage: ssh_hostrm <host> [host...]" >&2
+    exit 1
+fi
+
+for host in "$@"; do
+    ssh-keygen -f "$HOME/.ssh/known_hosts" -R "$host"
+done

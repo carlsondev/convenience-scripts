@@ -1,77 +1,83 @@
 #!/usr/bin/env bash
+# Sets up zsh + oh-my-zsh, installs the custom scripts, fzf, and vim-plug.
+# Safe to re-run: each step skips work that is already done.
 
-if ! command -v curl &> /dev/null
-then
-    echo "curl could not be found"
-    exit 1
+set -euo pipefail
+
+REPO_URL="https://github.com/carlsondev/convenience-scripts.git"
+ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+
+info() { printf '\n==> %s\n' "$*"; }
+
+for cmd in curl sudo apt-get; do
+    if ! command -v "$cmd" &> /dev/null; then
+        echo "$cmd could not be found" >&2
+        exit 1
+    fi
+done
+
+# Install ZSH (and git, which everything below needs)
+info "Installing ZSH and git"
+sudo apt-get update -qq
+sudo apt-get install -y zsh git
+
+info "Changing the default shell to ZSH"
+ZSH_PATH="$(command -v zsh)"
+if [ "$(getent passwd "$USER" | cut -d: -f7)" != "$ZSH_PATH" ]; then
+    sudo chsh -s "$ZSH_PATH" "$USER"
 fi
 
-echo "Installing ZSH"
-sudo apt install zsh
+# Install Oh-My-Zsh
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+    info "Installing Oh-My-ZSH"
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+fi
 
-
-echo "Changing the default shell to ZSH"
-sudo chsh -s $(which zsh)
-
-exec zsh
-
-# Install Oh - My - Zsh
-echo "Installing Oh-My-ZSH"
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" || exit $?
-
-echo -e "export PATH=$HOME/bin:/usr/local/bin:$PATH\n$(cat ~/.zshrc)" > ~/.zshrc
+PATH_LINE='export PATH=$HOME/bin:/usr/local/bin:$PATH'
+if ! grep -qxF "$PATH_LINE" ~/.zshrc; then
+    printf '%s\n%s\n' "$PATH_LINE" "$(cat ~/.zshrc)" > ~/.zshrc
+fi
 
 # Set the theme to eastwood
-sed -i 's/ZSH_THEME=.*/ZSH_THEME="eastwood"/' ~/.zshrc
+sed -i 's/^ZSH_THEME=.*/ZSH_THEME="eastwood"/' ~/.zshrc
 
-echo "Downloading ZSH plugins"
+info "Downloading ZSH plugins"
+clone_if_missing() {
+    [ -d "$2" ] || git clone --quiet --depth 1 "$1" "$2"
+}
+clone_if_missing https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
+clone_if_missing https://github.com/zsh-users/zsh-syntax-highlighting.git "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
 
-sudo git clone --quiet https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions || exit $?
-
-sudo git clone --quiet https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting || exit $?
-
-sed -i 's/plugins=.*/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc
-
-source ~/.zshrc && echo "Successfully Setup Zsh Env!" || exit $?
+sed -i 's/^plugins=.*/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc
 
 # Copy custom scripts
-
-REPO_PATH=~/.con-scripts-repo
-
-git clone --quiet https://github.com/carlsondev/convenience-scripts.git $REPO_PATH || exit $?
-
-echo "Copying scripts to user bin"
-chmod +x $REPO_PATH/scripts/* || exit $?
-sudo cp -r $REPO_PATH/scripts/* /usr/local/bin/ || exit $?
-
-echo "Successfully copied custom scripts to user bin"
-
-rm -rf $REPO_PATH
+info "Copying scripts to /usr/local/bin"
+REPO_PATH="$(mktemp -d)"
+trap 'rm -rf "$REPO_PATH"' EXIT
+git clone --quiet --depth 1 "$REPO_URL" "$REPO_PATH"
+sudo install -m 755 "$REPO_PATH"/scripts/* /usr/local/bin/
 
 # Install FZF
-git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+info "Installing FZF"
+clone_if_missing https://github.com/junegunn/fzf.git ~/.fzf
 ~/.fzf/install --all
 
-# Install VimPlug and FZF 
-curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
+# Install VimPlug and FZF
+info "Installing vim-plug"
+curl -fsSLo ~/.vim/autoload/plug.vim --create-dirs \
     https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
 
-VIMRC="
+if ! grep -qF "junegunn/fzf.vim" ~/.vimrc 2> /dev/null; then
+    cat >> ~/.vimrc << 'EOF'
+
 call plug#begin()
 
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 
 call plug#end()
-"
-echo "$VIMRC" >> ~/.vimrc
+EOF
+fi
 
-echo "\nInstalled FZF and VimPlug-Fzf! Run ':PlugInstall' inside vim to finish the installation"
-
-echo "\nSuccessfully setup environment! Run \"chsh -s $(which zsh) && exec zsh && source ~/.zshrc\" to enter"
-
-
-
-
-
-
+info "Installed FZF and VimPlug-Fzf! Run ':PlugInstall' inside vim to finish the installation"
+info "Successfully set up environment! Log out and back in (or run 'exec zsh') to start using it"

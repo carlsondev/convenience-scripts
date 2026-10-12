@@ -1,3 +1,10 @@
+#!/usr/bin/env bash
 # Finds any file or folder in the filesystem matching the given pattern
 # Usage: $ findn "hello*.jpg"
+
+if [ $# -eq 0 ]; then
+    echo "Usage: findn <pattern>" >&2
+    exit 1
+fi
+
 sudo find / -name "$*" 2> /dev/null
